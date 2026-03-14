@@ -88,59 +88,33 @@ const GitHubAPI = {
 async function initDB() {
     // 检查是否已配置 Token
     const savedToken = localStorage.getItem('github_token');
-    if (savedToken) {
-        GITHUB_CONFIG.token = savedToken;
-    } else {
+    if (!savedToken) {
         // 首次使用，提示输入 Token
-        const token = prompt(
-            '请输入 GitHub Personal Access Token\n' +
-            '获取方式：GitHub → Settings → Developer settings → Personal access tokens\n' +
-            '勾选：repo, workflow'
-        );
-        if (!token) {
-            alert('未输入 Token，将使用本地存储模式');
-            return;
-        }
-        GITHUB_CONFIG.token = token;
-        localStorage.setItem('github_token', token);
+        setTimeout(() => {
+            const token = prompt(
+                '欢迎使用云商店！\n\n' +
+                '这是第一次使用，需要配置 GitHub Token 以实现云存储\n\n' +
+                '获取方式：\n' +
+                '1. 访问 https://github.com/settings/tokens\n' +
+                '2. 点击 Generate new token\n' +
+                '3. 勾选 repo 和 workflow 权限\n' +
+                '4. 复制生成的 Token\n\n' +
+                '（如果只想本地测试，点取消即可）',
+                ''
+            );
+            
+            if (token && token.trim()) {
+                GITHUB_CONFIG.token = token.trim();
+                localStorage.setItem('github_token', token);
+                alert('配置成功！数据将保存到 GitHub');
+            } else {
+                alert('已切换到本地存储模式\n数据仅保存在当前浏览器');
+            }
+        }, 1000);
+        return;
     }
     
-    // 初始化商品数据
-    try {
-        const productsData = await GitHubAPI.getFileContent('data/products.json');
-        if (!productsData) {
-            // 创建初始商品数据
-            const initialProducts = [
-                {
-                    id: '1',
-                    name: '云服务器 ECS - 通用型 s6',
-                    category: 'ecs',
-                    price: 9900,
-                    originalPrice: 19900,
-                    sales: 12580,
-                    image: 'https://picsum.photos/400/300?random=1',
-                    images: ['https://picsum.photos/400/300?random=1', 'https://picsum.photos/400/300?random=2'],
-                    description: '高性能云服务器，适用于中小企业网站、应用服务器等场景',
-                    specs: {CPU: ['2 核', '4 核', '8 核'], 内存: ['4GB', '8GB', '16GB']},
-                    params: {'处理器': 'Intel Xeon Platinum 8269CY', '内存类型': 'DDR4 2666MHz'},
-                    stock: 100,
-                    isOnSale: true,
-                    rating: 4.8,
-                    reviews: [],
-                    createTime: Date.now()
-                }
-            ];
-            
-            // 保存到 GitHub
-            await GitHubAPI.uploadFile(
-                'data/products.json',
-                btoa(JSON.stringify(initialProducts)),
-                '初始化商品数据'
-            );
-        }
-    } catch (error) {
-        console.error('初始化失败:', error);
-    }
+    GITHUB_CONFIG.token = savedToken;
 }
 
 /**
