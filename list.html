@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品列表 - 云商店</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 导航栏 (与首页相同) -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-top">
+                <a href="index.html" class="logo">
+                    <span class="logo-icon">☁️</span>
+                    <span>云商店</span>
+                </a>
+                
+                <div class="search-bar">
+                    <input type="text" class="search-input" placeholder="搜索云服务器、存储、数据库等产品..." id="searchInput">
+                    <button class="search-btn" onclick="handleSearch()">🔍</button>
+                </div>
+                
+                <div class="nav-user">
+                    <div class="nav-item" onclick="showLoginModal()">
+                        <span class="nav-item-icon">👤</span>
+                        <span id="userText">登录/注册</span>
+                    </div>
+                    <div class="nav-item" onclick="location.href='cart.html'">
+                        <span class="nav-item-icon">🛒</span>
+                        <span>购物车</span>
+                        <span class="cart-count" id="cartCount">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="navbar-categories">
+                <ul class="categories-list">
+                    <li class="category-item"><a href="list.html?category=ecs">云服务器</a></li>
+                    <li class="category-item"><a href="list.html?category=storage">云存储</a></li>
+                    <li class="category-item"><a href="list.html?category=database">云数据库</a></li>
+                    <li class="category-item"><a href="list.html?category=security">云安全</a></li>
+                    <li class="category-item"><a href="list.html?category=network">网络服务</a></li>
+                    <li class="category-item"><a href="list.html?category=bigdata">大数据</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container section">
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+            <div class="filter-row">
+                <span class="filter-label">分类：</span>
+                <div class="filter-options" id="categoryFilter">
+                    <span class="filter-option active" data-category="">全部</span>
+                    <span class="filter-option" data-category="ecs">云服务器</span>
+                    <span class="filter-option" data-category="storage">云存储</span>
+                    <span class="filter-option" data-category="database">云数据库</span>
+                    <span class="filter-option" data-category="security">云安全</span>
+                    <span class="filter-option" data-category="network">网络服务</span>
+                    <span class="filter-option" data-category="bigdata">大数据</span>
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <span class="filter-label">价格区间：</span>
+                <div class="price-input">
+                    <input type="number" id="minPrice" placeholder="最低" min="0">
+                    <span>-</span>
+                    <input type="number" id="maxPrice" placeholder="最高" min="0">
+                    <button class="btn btn-primary" onclick="applyPriceFilter()">确定</button>
+                    <button class="btn btn-outline" onclick="clearPriceFilter()">重置</button>
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <span class="filter-label">排序：</span>
+                <div class="filter-options" id="sortFilter">
+                    <span class="filter-option active" data-sort="default">默认</span>
+                    <span class="filter-option" data-sort="price_asc">价格↑</span>
+                    <span class="filter-option" data-sort="price_desc">价格↓</span>
+                    <span class="filter-option" data-sort="sales">销量</span>
+                    <span class="filter-option" data-sort="new">新品</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 商品列表 -->
+        <div style="margin-bottom: 20px; color: var(--text-secondary);">
+            共找到 <span id="productCount" style="color: var(--primary-color); font-weight: 500;">0</span> 件商品
+        </div>
+        
+        <div class="products-grid" id="productsList">
+            <!-- 商品卡片将通过 JavaScript 动态加载 -->
+        </div>
+        
+        <!-- 分页 -->
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>关于我们</h4>
+                    <ul>
+                        <li><a href="#">公司简介</a></li>
+                        <li><a href="#">联系我们</a></li>
+                        <li><a href="#">加入我们</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>帮助中心</h4>
+                    <ul>
+                        <li><a href="#">购物指南</a></li>
+                        <li><a href="#">订单查询</a></li>
+                        <li><a href="#">常见问题</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>配送方式</h4>
+                    <ul>
+                        <li><a href="#">在线交付</a></li>
+                        <li><a href="#">使用说明</a></li>
+                        <li><a href="#">技术支持</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>关注我们</h4>
+                    <ul>
+                        <li><a href="#">官方微信</a></li>
+                        <li><a href="#">官方微博</a></li>
+                        <li><a href="#">客服热线：400-888-8888</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 云商店 版权所有</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // 页面加载后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const category = urlParams.get('category') || '';
+            
+            // 设置当前分类
+            if (category) {
+                document.querySelectorAll('#categoryFilter .filter-option').forEach(option => {
+                    option.classList.remove('active');
+                    if (option.dataset.category === category) {
+                        option.classList.add('active');
+                    }
+                });
+            }
+            
+            loadProducts(category);
+            
+            // 绑定分类筛选事件
+            document.querySelectorAll('#categoryFilter .filter-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('#categoryFilter .filter-option').forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    const selectedCategory = this.dataset.category;
+                    const activeSort = document.querySelector('#sortFilter .filter-option.active').dataset.sort;
+                    const minPrice = document.getElementById('minPrice').value;
+                    const maxPrice = document.getElementById('maxPrice').value;
+                    loadProducts(selectedCategory, activeSort, minPrice, maxPrice);
+                });
+            });
+            
+            // 绑定排序事件
+            document.querySelectorAll('#sortFilter .filter-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('#sortFilter .filter-option').forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    const selectedSort = this.dataset.sort;
+                    const activeCategory = document.querySelector('#categoryFilter .filter-option.active').dataset.category;
+                    const minPrice = document.getElementById('minPrice').value;
+                    const maxPrice = document.getElementById('maxPrice').value;
+                    loadProducts(activeCategory, selectedSort, minPrice, maxPrice);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

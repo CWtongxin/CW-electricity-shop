@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品详情 - 云商店</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-top">
+                <a href="index.html" class="logo">
+                    <span class="logo-icon">☁️</span>
+                    <span>云商店</span>
+                </a>
+                
+                <div class="search-bar">
+                    <input type="text" class="search-input" placeholder="搜索云服务器、存储、数据库等产品..." id="searchInput">
+                    <button class="search-btn" onclick="handleSearch()">🔍</button>
+                </div>
+                
+                <div class="nav-user">
+                    <div class="nav-item" onclick="showLoginModal()">
+                        <span class="nav-item-icon">👤</span>
+                        <span id="userText">登录/注册</span>
+                    </div>
+                    <div class="nav-item" onclick="location.href='cart.html'">
+                        <span class="nav-item-icon">🛒</span>
+                        <span>购物车</span>
+                        <span class="cart-count" id="cartCount">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="navbar-categories">
+                <ul class="categories-list">
+                    <li class="category-item"><a href="list.html?category=ecs">云服务器</a></li>
+                    <li class="category-item"><a href="list.html?category=storage">云存储</a></li>
+                    <li class="category-item"><a href="list.html?category=database">云数据库</a></li>
+                    <li class="category-item"><a href="list.html?category=security">云安全</a></li>
+                    <li class="category-item"><a href="list.html?category=network">网络服务</a></li>
+                    <li class="category-item"><a href="list.html?category=bigdata">大数据</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container section">
+        <!-- 面包屑导航 -->
+        <div style="margin-bottom: 20px; color: var(--text-secondary);">
+            <a href="index.html" style="color: inherit;">首页</a> > 
+            <a href="list.html" id="categoryLink" style="color: var(--primary-color);">商品列表</a> > 
+            <span id="productTitle">商品详情</span>
+        </div>
+
+        <!-- 商品详情主区域 -->
+        <div class="detail-container">
+            <!-- 左侧图片画廊 -->
+            <div class="detail-gallery">
+                <img src="" alt="商品主图" class="main-image" id="mainImage">
+                <div class="thumbnail-list" id="thumbnailList"></div>
+            </div>
+
+            <!-- 右侧商品信息 -->
+            <div class="detail-info">
+                <h1 class="detail-title" id="productDetailTitle"></h1>
+                <p class="detail-desc" id="productDetailDesc"></p>
+                
+                <div class="detail-price">
+                    <span class="current-price" id="currentPrice">¥0</span>
+                    <span class="original-price" id="originalPrice"></span>
+                    <span class="discount-tag" id="discountTag">限时优惠</span>
+                </div>
+
+                <!-- 规格选择 -->
+                <div class="specifications" id="specifications">
+                    <!-- 规格选项将通过 JavaScript 动态生成 -->
+                </div>
+
+                <!-- 数量选择 -->
+                <div class="quantity-selector">
+                    <span class="filter-label">购买数量：</span>
+                    <button class="quantity-btn" onclick="changeQuantity(-1)">-</button>
+                    <input type="number" class="quantity-input" id="quantityInput" value="1" min="1" max="100" onchange="updateQuantity(this.value)">
+                    <button class="quantity-btn" onclick="changeQuantity(1)">+</button>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="action-buttons">
+                    <button class="btn btn-outline" onclick="addToCartFromDetail()">
+                        🛒 加入购物车
+                    </button>
+                    <button class="btn btn-primary" onclick="buyNow()">
+                        ⚡ 立即购买
+                    </button>
+                </div>
+
+                <!-- 服务保障 -->
+                <div style="background-color: var(--bg-light); padding: 15px; border-radius: 8px; margin-top: 20px;">
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: var(--success-color); font-size: 20px;">✓</span>
+                            <span style="font-size: 13px; color: var(--text-secondary);">官方正品保证</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: var(--success-color); font-size: 20px;">✓</span>
+                            <span style="font-size: 13px; color: var(--text-secondary);">7 天无理由退换</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: var(--success-color); font-size: 20px;">✓</span>
+                            <span style="font-size: 13px; color: var(--text-secondary);">全国联保</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: var(--success-color); font-size: 20px;">✓</span>
+                            <span style="font-size: 13px; color: var(--text-secondary);">极速配送</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 商品详情 Tab -->
+        <div class="detail-tabs">
+            <div class="tab-list">
+                <div class="tab-item active" onclick="switchTab('params')">规格参数</div>
+                <div class="tab-item" onclick="switchTab('description')">商品介绍</div>
+                <div class="tab-item" onclick="switchTab('reviews')">用户评价</div>
+            </div>
+        </div>
+
+        <!-- Tab 内容 -->
+        <div class="tab-content active" id="paramsTab">
+            <div style="background-color: var(--bg-white); padding: 30px; border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse;" id="paramsTable">
+                    <!-- 参数表格将通过 JavaScript 动态生成 -->
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-content" id="descriptionTab">
+            <div style="background-color: var(--bg-white); padding: 30px; border-radius: 8px;">
+                <div id="productDescription">
+                    <!-- 商品描述将通过 JavaScript 动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="reviewsTab">
+            <div style="background-color: var(--bg-white); padding: 30px; border-radius: 8px;">
+                <div class="review-list" id="reviewList">
+                    <!-- 评价列表将通过 JavaScript 动态生成 -->
+                </div>
+                <div class="pagination" id="reviewPagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>关于我们</h4>
+                    <ul>
+                        <li><a href="#">公司简介</a></li>
+                        <li><a href="#">联系我们</a></li>
+                        <li><a href="#">加入我们</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>帮助中心</h4>
+                    <ul>
+                        <li><a href="#">购物指南</a></li>
+                        <li><a href="#">订单查询</a></li>
+                        <li><a href="#">常见问题</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>配送方式</h4>
+                    <ul>
+                        <li><a href="#">在线交付</a></li>
+                        <li><a href="#">使用说明</a></li>
+                        <li><a href="#">技术支持</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>关注我们</h4>
+                    <ul>
+                        <li><a href="#">官方微信</a></li>
+                        <li><a href="#">官方微博</a></li>
+                        <li><a href="#">客服热线：400-888-8888</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 云商店 版权所有</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // 页面加载后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id') || '1';
+            loadProductDetail(productId);
+        });
+    </script>
+</body>
+</html>
