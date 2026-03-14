@@ -950,10 +950,29 @@ function submitOrder() {
         return;
     }
     
-    // 模拟提交订单
-    showToast('订单提交中...', 2000);
-    
-    setTimeout(() => {
+    try {
+        // 创建订单（存储到 localStorage）
+        const orderData = {
+            customerName: selectedAddress.name,
+            customerPhone: selectedAddress.phone,
+            address: `${selectedAddress.region} ${selectedAddress.detail}`,
+            items: checkoutItems.map(item => ({
+                productId: item.productId,
+                name: item.name,
+                price: item.price * 100, // 转换为分
+                quantity: item.quantity
+            })),
+            totalAmount: checkoutItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) * 100
+        };
+        
+        const order = OrderDAO.create(orderData);
+        
+        // 扣减库存
+        checkoutItems.forEach(item => {
+            ProductDAO.updateStock(item.productId, -item.quantity);
+            ProductDAO.updateSales(item.productId, item.quantity);
+        });
+        
         // 清空购物车中已结算的商品
         const checkoutIds = checkoutItems.map(item => item.cartKey);
         cart = cart.filter(item => !checkoutIds.includes(item.cartKey));
@@ -963,12 +982,16 @@ function submitOrder() {
         // 清除结算数据
         sessionStorage.removeItem('checkoutItems');
         
-        showToast('订单提交成功！', 3000);
+        showToast('订单提交成功！', 2000);
         
+        // 跳转到支付页
         setTimeout(() => {
-            location.href = 'index.html';
+            location.href = 'payment.html?orderNo=' + order.orderNo;
         }, 1500);
-    }, 2000);
+    } catch (error) {
+        console.error('提交订单失败:', error);
+        showToast('提交失败：' + error.message);
+    }
 }
 
 // 新增地址弹窗
@@ -1078,7 +1101,7 @@ function checkUserLogin() {
 }
 
 // ==================== 工具函数 ====================
-// 提示弹窗
+// ==================== 工具函数 ====================
 function showToast(message, duration = 3000) {
     // 移除已有的 toast
     const existingToast = document.querySelector('.toast');
