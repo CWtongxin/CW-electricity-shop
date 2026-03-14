@@ -1,59 +1,145 @@
-// ==================== 数据层封装 - 使用 localStorage ====================
-// 注意：这是演示版本，数据存储在浏览器本地
-// 正式版本将使用 GitHub Issues API 作为后端
+// ==================== 数据层封装 - 使用 GitHub Issues API ====================
+// 配置信息
+const GITHUB_CONFIG = {
+    owner: 'CWtongxin',
+    repo: 'CW-electricity-shop',
+    token: '' // 需要用户填写 Personal Access Token
+};
 
-const DB_VERSION = '1.0';
+/**
+ * GitHub API 调用封装
+ */
+const GitHubAPI = {
+    // 基础请求方法
+    async request(method, endpoint, data = null) {
+        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}${endpoint}`;
+        
+        const options = {
+            method,
+            headers: {
+                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        };
+        
+        if (data) {
+            options.body = JSON.stringify(data);
+        }
+        
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            throw new Error(`GitHub API Error: ${response.status}`);
+        }
+        
+        return await response.json();
+    },
+    
+    // 创建 Issue（用于存储数据）
+    async createIssue(title, body, labels = ['data']) {
+        return await this.request('POST', '/issues', {
+            title,
+            body: JSON.stringify(body),
+            labels
+        });
+    },
+    
+    // 获取所有 Issue
+    async getIssues(labels = 'data') {
+        return await this.request('GET', `/issues?labels=${labels}&state=all&per_page=100`);
+    },
+    
+    // 更新 Issue
+    async updateIssue(issueNumber, data) {
+        return await this.request('PATCH', `/issues/${issueNumber}`, data);
+    },
+    
+    // 关闭 Issue（删除数据）
+    async closeIssue(issueNumber) {
+        return await this.request('PATCH', `/issues/${issueNumber}`, {
+            state: 'closed'
+        });
+    },
+    
+    // 上传文件到 GitHub（使用 Base64）
+    async uploadFile(path, content, message = 'Upload file') {
+        return await this.request('PUT', `/contents/${path}`, {
+            message,
+            content // Base64 编码
+        });
+    },
+    
+    // 获取文件内容
+    async getFileContent(path) {
+        try {
+            const result = await this.request('GET', `/contents/${path}`);
+            // GitHub 返回的是 Base64，需要解码
+            return atob(result.content.replace(/\n/g, ''));
+        } catch (error) {
+            return null;
+        }
+    }
+};
 
 /**
  * 初始化数据库
  */
-function initDB() {
-    // 初始化商品数据（如果不存在）
-    if (!localStorage.getItem('products')) {
-        const initialProducts = [
-            {
-                id: '1',
-                name: '云服务器 ECS - 通用型 s6',
-                category: 'ecs',
-                price: 9900,
-                originalPrice: 19900,
-                sales: 12580,
-                image: 'https://picsum.photos/400/300?random=1',
-                images: ['https://picsum.photos/400/300?random=1', 'https://picsum.photos/400/300?random=2'],
-                description: '高性能云服务器，适用于中小企业网站、应用服务器等场景',
-                specs: {'CPU': ['2 核', '4 核', '8 核'], '内存': ['4GB', '8GB', '16GB']},
-                params: {'处理器': 'Intel Xeon Platinum 8269CY', '内存类型': 'DDR4 2666MHz'},
-                stock: 100,
-                isOnSale: true,
-                rating: 4.8,
-                reviews: [],
-                createTime: Date.now()
-            }
-        ];
-        localStorage.setItem('products', JSON.stringify(initialProducts));
+async function initDB() {
+    // 检查是否已配置 Token
+    const savedToken = localStorage.getItem('github_token');
+    if (savedToken) {
+        GITHUB_CONFIG.token = savedToken;
+    } else {
+        // 首次使用，提示输入 Token
+        const token = prompt(
+            '请输入 GitHub Personal Access Token\n' +
+            '获取方式：GitHub → Settings → Developer settings → Personal access tokens\n' +
+            '勾选：repo, workflow'
+        );
+        if (!token) {
+            alert('未输入 Token，将使用本地存储模式');
+            return;
+        }
+        GITHUB_CONFIG.token = token;
+        localStorage.setItem('github_token', token);
     }
     
-    // 初始化订单数据
-    if (!localStorage.getItem('orders')) {
-        localStorage.setItem('orders', JSON.stringify([]));
-    }
-    
-    // 初始化店铺配置
-    if (!localStorage.getItem('shopConfig')) {
-        localStorage.setItem('shopConfig', JSON.stringify({
-            shopName: '我的云商店',
-            contactPhone: '400-888-8888',
-            contactWechat: 'wechat123'
-        }));
-    }
-    
-    // 初始化管理员账号
-    if (!localStorage.getItem('admins')) {
-        localStorage.setItem('admins', JSON.stringify([{
-            username: 'admin',
-            password: 'win112233',
-            role: 'admin'
-        }]));
+    // 初始化商品数据
+    try {
+        const productsData = await GitHubAPI.getFileContent('data/products.json');
+        if (!productsData) {
+            // 创建初始商品数据
+            const initialProducts = [
+                {
+                    id: '1',
+                    name: '云服务器 ECS - 通用型 s6',
+                    category: 'ecs',
+                    price: 9900,
+                    originalPrice: 19900,
+                    sales: 12580,
+                    image: 'https://picsum.photos/400/300?random=1',
+                    images: ['https://picsum.photos/400/300?random=1', 'https://picsum.photos/400/300?random=2'],
+                    description: '高性能云服务器，适用于中小企业网站、应用服务器等场景',
+                    specs: {CPU: ['2 核', '4 核', '8 核'], 内存: ['4GB', '8GB', '16GB']},
+                    params: {'处理器': 'Intel Xeon Platinum 8269CY', '内存类型': 'DDR4 2666MHz'},
+                    stock: 100,
+                    isOnSale: true,
+                    rating: 4.8,
+                    reviews: [],
+                    createTime: Date.now()
+                }
+            ];
+            
+            // 保存到 GitHub
+            await GitHubAPI.uploadFile(
+                'data/products.json',
+                btoa(JSON.stringify(initialProducts)),
+                '初始化商品数据'
+            );
+        }
+    } catch (error) {
+        console.error('初始化失败:', error);
     }
 }
 
@@ -62,21 +148,28 @@ function initDB() {
  */
 const ProductDAO = {
     // 获取所有上架商品
-    getAll() {
-        const products = JSON.parse(localStorage.getItem('products') || '[]');
-        return products.filter(p => p.isOnSale);
+    async getAll() {
+        try {
+            const data = await GitHubAPI.getFileContent('data/products.json');
+            if (!data) return [];
+            const products = JSON.parse(data);
+            return products.filter(p => p.isOnSale);
+        } catch (error) {
+            console.error('获取商品失败:', error);
+            return [];
+        }
     },
     
     // 根据分类筛选
-    getByCategory(category) {
-        const products = this.getAll();
+    async getByCategory(category) {
+        const products = await this.getAll();
         if (!category) return products;
         return products.filter(p => p.category === category);
     },
     
     // 搜索商品
-    search(keyword) {
-        const products = this.getAll();
+    async search(keyword) {
+        const products = await this.getAll();
         return products.filter(p => 
             p.name.toLowerCase().includes(keyword.toLowerCase()) ||
             p.description.toLowerCase().includes(keyword.toLowerCase())
@@ -84,14 +177,18 @@ const ProductDAO = {
     },
     
     // 获取商品详情
-    getById(id) {
-        const products = JSON.parse(localStorage.getItem('products') || '[]');
+    async getById(id) {
+        const data = await GitHubAPI.getFileContent('data/products.json');
+        if (!data) return null;
+        const products = JSON.parse(data);
         return products.find(p => p.id === id);
     },
     
     // 添加商品
-    add(productData) {
-        const products = JSON.parse(localStorage.getItem('products') || '[]');
+    async add(productData) {
+        const data = await GitHubAPI.getFileContent('data/products.json');
+        const products = data ? JSON.parse(data) : [];
+        
         const newProduct = {
             ...productData,
             id: 'P' + Date.now(),
@@ -99,45 +196,85 @@ const ProductDAO = {
             isOnSale: true,
             createTime: Date.now()
         };
+        
         products.push(newProduct);
-        localStorage.setItem('products', JSON.stringify(products));
+        
+        // 保存到 GitHub
+        await GitHubAPI.uploadFile(
+            'data/products.json',
+            btoa(JSON.stringify(products)),
+            `添加商品：${newProduct.name}`
+        );
+        
         return newProduct.id;
     },
     
     // 更新商品
-    update(id, productData) {
-        const products = JSON.parse(localStorage.getItem('products') || '[]');
+    async update(id, productData) {
+        const data = await GitHubAPI.getFileContent('data/products.json');
+        if (!data) return;
+        
+        const products = JSON.parse(data);
         const index = products.findIndex(p => p.id === id);
+        
         if (index !== -1) {
             products[index] = { ...products[index], ...productData };
-            localStorage.setItem('products', JSON.stringify(products));
+            await GitHubAPI.uploadFile(
+                'data/products.json',
+                btoa(JSON.stringify(products)),
+                `更新商品：${products[index].name}`
+            );
         }
     },
     
     // 删除商品
-    delete(id) {
-        const products = JSON.parse(localStorage.getItem('products') || '[]');
+    async delete(id) {
+        const data = await GitHubAPI.getFileContent('data/products.json');
+        if (!data) return;
+        
+        const products = JSON.parse(data);
         const filtered = products.filter(p => p.id !== id);
-        localStorage.setItem('products', JSON.stringify(filtered));
+        
+        await GitHubAPI.uploadFile(
+            'data/products.json',
+            btoa(JSON.stringify(filtered)),
+            '删除商品'
+        );
     },
     
     // 更新库存
-    updateStock(id, stockChange) {
-        const products = JSON.parse(localStorage.getItem('products') || '[]');
+    async updateStock(id, stockChange) {
+        const data = await GitHubAPI.getFileContent('data/products.json');
+        if (!data) return;
+        
+        const products = JSON.parse(data);
         const product = products.find(p => p.id === id);
+        
         if (product) {
             product.stock += stockChange;
-            localStorage.setItem('products', JSON.stringify(products));
+            await GitHubAPI.uploadFile(
+                'data/products.json',
+                btoa(JSON.stringify(products)),
+                `更新库存：${product.name}`
+            );
         }
     },
     
     // 更新销量
-    updateSales(id, quantity) {
-        const products = JSON.parse(localStorage.getItem('products') || '[]');
+    async updateSales(id, quantity) {
+        const data = await GitHubAPI.getFileContent('data/products.json');
+        if (!data) return;
+        
+        const products = JSON.parse(data);
         const product = products.find(p => p.id === id);
+        
         if (product) {
             product.sales += quantity;
-            localStorage.setItem('products', JSON.stringify(products));
+            await GitHubAPI.uploadFile(
+                'data/products.json',
+                btoa(JSON.stringify(products)),
+                `更新销量：${product.name}`
+            );
         }
     }
 };
@@ -152,8 +289,10 @@ const OrderDAO = {
     },
     
     // 创建订单
-    create(orderData) {
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    async create(orderData) {
+        const data = await GitHubAPI.getFileContent('data/orders.json');
+        const orders = data ? JSON.parse(data) : [];
+        
         const newOrder = {
             ...orderData,
             orderNo: this.generateOrderNo(),
@@ -161,76 +300,124 @@ const OrderDAO = {
             paymentStatus: 'unpaid',
             createTime: Date.now()
         };
+        
         orders.push(newOrder);
-        localStorage.setItem('orders', JSON.stringify(orders));
+        
+        await GitHubAPI.uploadFile(
+            'data/orders.json',
+            btoa(JSON.stringify(orders)),
+            `创建订单：${newOrder.orderNo}`
+        );
+        
         return newOrder;
     },
     
     // 获取订单列表
-    getAll() {
-        return JSON.parse(localStorage.getItem('orders') || '[]');
+    async getAll() {
+        try {
+            const data = await GitHubAPI.getFileContent('data/orders.json');
+            if (!data) return [];
+            return JSON.parse(data);
+        } catch (error) {
+            console.error('获取订单失败:', error);
+            return [];
+        }
     },
     
     // 根据 ID 获取订单
-    getById(id) {
-        const orders = this.getAll();
+    async getById(id) {
+        const orders = await this.getAll();
         return orders.find(o => o._id === id);
     },
     
     // 根据订单号获取订单
-    getByOrderNo(orderNo) {
-        const orders = this.getAll();
+    async getByOrderNo(orderNo) {
+        const orders = await this.getAll();
         return orders.find(o => o.orderNo === orderNo);
     },
     
     // 更新订单
-    update(id, orderData) {
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    async update(id, orderData) {
+        const data = await GitHubAPI.getFileContent('data/orders.json');
+        if (!data) return;
+        
+        const orders = JSON.parse(data);
         const index = orders.findIndex(o => o._id === id);
+        
         if (index !== -1) {
             orders[index] = { ...orders[index], ...orderData };
-            localStorage.setItem('orders', JSON.stringify(orders));
+            await GitHubAPI.uploadFile(
+                'data/orders.json',
+                btoa(JSON.stringify(orders)),
+                `更新订单：${orders[index].orderNo}`
+            );
         }
     },
     
     // 上传支付凭证
-    uploadPaymentProof(orderNo, proofUrl) {
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    async uploadPaymentProof(orderNo, proofUrl) {
+        const data = await GitHubAPI.getFileContent('data/orders.json');
+        if (!data) return;
+        
+        const orders = JSON.parse(data);
         const order = orders.find(o => o.orderNo === orderNo);
+        
         if (order) {
             order.paymentProof = proofUrl;
             order.paymentStatus = 'paid';
             order.paidTime = Date.now();
-            localStorage.setItem('orders', JSON.stringify(orders));
+            
+            await GitHubAPI.uploadFile(
+                'data/orders.json',
+                btoa(JSON.stringify(orders)),
+                `上传支付凭证：${orderNo}`
+            );
         }
     },
     
     // 确认收款
-    confirmPayment(orderNo) {
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    async confirmPayment(orderNo) {
+        const data = await GitHubAPI.getFileContent('data/orders.json');
+        if (!data) return;
+        
+        const orders = JSON.parse(data);
         const order = orders.find(o => o.orderNo === orderNo);
+        
         if (order) {
             order.status = 'paid';
-            localStorage.setItem('orders', JSON.stringify(orders));
+            await GitHubAPI.uploadFile(
+                'data/orders.json',
+                btoa(JSON.stringify(orders)),
+                `确认收款：${orderNo}`
+            );
         }
     },
     
     // 发货
-    ship(orderNo, company, trackingNo) {
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    async ship(orderNo, company, trackingNo) {
+        const data = await GitHubAPI.getFileContent('data/orders.json');
+        if (!data) return;
+        
+        const orders = JSON.parse(data);
         const order = orders.find(o => o.orderNo === orderNo);
+        
         if (order) {
             order.status = 'shipped';
             order.shippingCompany = company;
             order.trackingNo = trackingNo;
             order.shippedTime = Date.now();
-            localStorage.setItem('orders', JSON.stringify(orders));
+            
+            await GitHubAPI.uploadFile(
+                'data/orders.json',
+                btoa(JSON.stringify(orders)),
+                `发货：${orderNo}`
+            );
         }
     },
     
     // 获取待确认支付的订单
-    getPendingPayments() {
-        const orders = this.getAll();
+    async getPendingPayments() {
+        const orders = await this.getAll();
         return orders.filter(o => o.paymentStatus === 'paid' && o.status === 'pending');
     }
 };
@@ -240,16 +427,31 @@ const OrderDAO = {
  */
 const UserDAO = {
     // 管理员登录
-    login(username, password) {
-        const admins = JSON.parse(localStorage.getItem('admins') || '[]');
-        const admin = admins.find(a => a.username === username && a.password === password);
-        
-        if (!admin) {
-            throw new Error('用户名或密码错误');
+    async login(username, password) {
+        try {
+            const data = await GitHubAPI.getFileContent('data/admins.json');
+            const admins = data ? JSON.parse(data) : [];
+            
+            const admin = admins.find(a => a.username === username && a.password === password);
+            
+            if (!admin) {
+                throw new Error('用户名或密码错误');
+            }
+            
+            localStorage.setItem('currentAdmin', JSON.stringify(admin));
+            return admin;
+        } catch (error) {
+            // 如果 GitHub API 失败，使用本地存储
+            const admins = JSON.parse(localStorage.getItem('admins') || '[]');
+            const admin = admins.find(a => a.username === username && a.password === password);
+            
+            if (!admin) {
+                throw new Error('用户名或密码错误');
+            }
+            
+            localStorage.setItem('currentAdmin', JSON.stringify(admin));
+            return admin;
         }
-        
-        localStorage.setItem('currentAdmin', JSON.stringify(admin));
-        return admin;
     },
     
     // 检查是否已登录
