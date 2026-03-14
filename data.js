@@ -115,6 +115,78 @@ async function initDB() {
     }
     
     GITHUB_CONFIG.token = savedToken;
+    
+    // 初始化数据文件
+    await initializeDataFiles();
+}
+
+/**
+ * 初始化数据文件（创建初始数据）
+ */
+async function initializeDataFiles() {
+    try {
+        // 检查并初始化商品数据
+        let productsData = await GitHubAPI.getFileContent('data/products.json');
+        if (!productsData) {
+            const initialProducts = [
+                {
+                    id: '1',
+                    name: '云服务器 ECS - 通用型 s6',
+                    category: 'ecs',
+                    price: 9900,
+                    originalPrice: 19900,
+                    sales: 12580,
+                    image: 'https://picsum.photos/400/300?random=1',
+                    images: ['https://picsum.photos/400/300?random=1', 'https://picsum.photos/400/300?random=2'],
+                    description: '高性能云服务器，适用于中小企业网站、应用服务器等场景',
+                    specs: {CPU: ['2 核', '4 核', '8 核'], '内存': ['4GB', '8GB', '16GB']},
+                    params: {'处理器': 'Intel Xeon Platinum 8269CY', '内存类型': 'DDR4 2666MHz'},
+                    stock: 100,
+                    isOnSale: true,
+                    rating: 4.8,
+                    reviews: [],
+                    createTime: Date.now()
+                }
+            ];
+            
+            await GitHubAPI.uploadFile(
+                'data/products.json',
+                btoa(JSON.stringify(initialProducts)),
+                '初始化商品数据'
+            );
+        }
+        
+        // 检查并初始化管理员数据
+        let adminsData = await GitHubAPI.getFileContent('data/admins.json');
+        if (!adminsData) {
+            const initialAdmins = [
+                {
+                    username: 'admin',
+                    password: 'win112233',
+                    role: 'admin',
+                    createTime: Date.now()
+                }
+            ];
+            
+            await GitHubAPI.uploadFile(
+                'data/admins.json',
+                btoa(JSON.stringify(initialAdmins)),
+                '初始化管理员账号'
+            );
+        }
+        
+        // 检查并初始化订单数据
+        let ordersData = await GitHubAPI.getFileContent('data/orders.json');
+        if (!ordersData) {
+            await GitHubAPI.uploadFile(
+                'data/orders.json',
+                btoa(JSON.stringify([])),
+                '初始化订单数据'
+            );
+        }
+    } catch (error) {
+        console.error('初始化失败:', error);
+    }
 }
 
 /**
